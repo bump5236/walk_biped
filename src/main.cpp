@@ -221,22 +221,23 @@ void loop() {
                 left_tgt_cur = 0;
             }
 
+
+            /* Error Handling */
+            if (right_motor.present_position > 48000 || right_motor.present_position < -31200) {
+                is_error = 1;
+                right_tgt_cur = 0;
+            }
+
+            if (left_motor.present_position < -48000 || left_motor.present_position > 31200) {
+                is_error = 1;
+                left_tgt_cur = 0;
+            }
+
+
             /* Output Current */
             right_motor.writeCurrent(right_tgt_cur);
             left_motor.writeCurrent(left_tgt_cur);
         #endif
-
-
-        /* Error Handling */
-        if (right_motor.present_position > 48000 || right_motor.present_position < -31200) {
-            is_error = 1;
-            right_motor.clearState();
-        }
-
-        if (left_motor.present_position < -48000 || left_motor.present_position > 31200) {
-            is_error = 1;
-            left_motor.clearState();
-        }
 
 
         /* Serial Communication */
