@@ -9,22 +9,32 @@
 #include "ControlCylinder.h"
 #include "WalkingStancePhase.h"
 
+/* Config */
 #define isDebug 0
 #define isMotor 1
+
+
+/* Angle Settings */
+#define NORMAL_MAX_ANGLE 60000
+#define NORMAL_MIN_ANGLE 8400
+#define LIMIT_MAX_ANGLE 120000
+#define LIMIT_MIN_ANGLE 40000
 
 uint8_t sync_pin, sync_flag, is_error;
 int16_t right_add_cur, left_add_cur;
 int16_t right_tgt_cur, left_tgt_cur;
-uint32_t timer[3];
+int32_t right_pos[2], left_pos[2];
 
 int16_t base;
 uint16_t T;
+uint32_t timer[3];
+
 float freq, omega;
 
 #if (isMotor)
     MCP_CAN CAN(9); //set CS PIN
-    RMDx8Arduino right_motor(CAN, 0x141);
-    RMDx8Arduino left_motor(CAN, 0x142);
+    RMDx8Arduino right_motor(CAN, 0x142);
+    RMDx8Arduino left_motor(CAN, 0x141);
 #endif
 
 ForceSensor right_sensor;
@@ -92,22 +102,25 @@ void setup() {
         left_motor.clearState();
         left_motor.writePID(40, 40, 50, 40, 20, 250);
 
-        freq  = 1 / T * 1000;
+        freq  = 1000.0 / T;
         base  = 4 * 2000 / 12.5 / 3.3;  // [Nm] -> [-]
-        omega = 2 * 3.14 * freq * 0.001;
+        omega = 2.0 * 3.14 * freq * 0.001;
     #endif
 }
 
 void loop() {
     #if (isMotor)
-        Serial.println("time, sync, heelR, toeR, phaseR, tgt_curR, curR, posR, heelL, toeL, phaseL, tgt_curL, curL, posL");
-    #elif (isDebug)
-        Serial.println("time, sync, heelR, toeR, phaseR, tempR, add_curR, tgt_curR, curR, posR, heelL, toeL, phaseL, tempL, add_curL, tgt_curL, curL, posL");
     #else
         Serial.println("time, sync, heelR, toeR, phaseR, heelL, toeL, phaseL");
     #endif
 
     timer[0] = millis();
+    #if (isMotor)
+        right_motor.readPosition();
+        left_motor.readPosition();
+        right_pos[0] = right_motor.present_position;
+        left_pos[0] = left_motor.present_position;
+    #endif
 
     while (is_error == 0) {
         /* Sensing Data */
@@ -118,6 +131,8 @@ void loop() {
         #if (isMotor)
             right_motor.readPosition();
             left_motor.readPosition();
+            right_pos[1] = right_motor.present_position - right_pos[0];
+            left_pos[1] = left_motor.present_position - left_pos[0];
         #endif
 
         /* Sequence Control */
@@ -136,12 +151,12 @@ void loop() {
             
             case right.LR:
                 right_knee.setPull();
-                right_add_cur = 100;
+                right_add_cur = 80;
                 break;
 
             case right.MSt:
                 right_knee.setPush();
-                right_add_cur = 100;
+                right_add_cur = 0;
                 break;
 
             case right.TSt:
@@ -170,12 +185,12 @@ void loop() {
             
             case left.LR:
                 left_knee.setPull();
-                left_add_cur = - 100;
+                left_add_cur = - 80;
                 break;
 
             case left.MSt:
                 left_knee.setPush();
-                left_add_cur = - 100;
+                left_add_cur = 0;
                 break;
 
             case left.TSt:
@@ -199,36 +214,36 @@ void loop() {
             left_tgt_cur = base_cur + left_add_cur;
 
             if (base_cur > 0) {
-                left_tgt_cur = left_tgt_cur * 0.02;
+                left_tgt_cur = left_tgt_cur * 0.05;
             }
             else if (base_cur < 0) {
-                right_tgt_cur = right_tgt_cur * 0.02;
+                right_tgt_cur = right_tgt_cur * 0.05;
             }
 
 
             /* Limit Angle */
-            if (right_motor.present_position > 42000) {
-                right_tgt_cur = 0;
+            if (right_pos[1] > NORMAL_MAX_ANGLE && right_tgt_cur > 0) {
+                right_tgt_cur = right_tgt_cur * 0.65;
             }
-            else if (right_motor.present_position < -25200) {
-                right_tgt_cur = 0;
+            else if (right_pos[1] < - NORMAL_MIN_ANGLE && right_tgt_cur < 0) {
+                right_tgt_cur = 20;
             }
 
-            if (left_motor.present_position < -42000) {
-                left_tgt_cur = 0;
+            if (left_pos[1] < - NORMAL_MAX_ANGLE && left_tgt_cur < 0) {
+                left_tgt_cur = left_tgt_cur * 0.65;
             }
-            else if (left_motor.present_position > 25200) {
-                left_tgt_cur = 0;
+            else if (left_pos[1] > NORMAL_MIN_ANGLE && left_tgt_cur > 0) {
+                left_tgt_cur = -50;
             }
 
 
             /* Error Handling */
-            if (right_motor.present_position > 48000 || right_motor.present_position < -31200) {
+            if (right_pos[1] > LIMIT_MAX_ANGLE || right_pos[1] < - LIMIT_MIN_ANGLE) {
                 is_error = 1;
                 right_tgt_cur = 0;
             }
 
-            if (left_motor.present_position < -48000 || left_motor.present_position > 31200) {
+            if (left_pos[1] < - LIMIT_MAX_ANGLE || left_pos[1] > LIMIT_MIN_ANGLE) {
                 is_error = 1;
                 left_tgt_cur = 0;
             }
@@ -241,53 +256,53 @@ void loop() {
 
 
         /* Serial Communication */
-        Serial.print(timer[1]);
-        Serial.print(",");
-        Serial.print(sync_flag);
-        Serial.print(",");
-        Serial.print(right.sensor.heel);
-        Serial.print(",");
-        Serial.print(right.sensor.toe);
-        Serial.print(",");
-        Serial.print(right.phase);
-        
         #if (isDebug)
-            Serial.print(",");
-            Serial.print(right_motor.temperature);
-            Serial.print(",");
-            Serial.print(right_add_cur);
-        #endif
-        
-        #if (isMotor)
-            Serial.print(",");
+            Serial.print("TIME:");
+            Serial.print(timer[1]);
+            Serial.print("\tR_TGT:");
             Serial.print(right_tgt_cur);
-            Serial.print(",");
-            Serial.print(right_motor.present_current);
-            Serial.print(",");
-            Serial.print(right_motor.present_position);
-        #endif
-
-        Serial.print(",");
-        Serial.print(left.sensor.heel);
-        Serial.print(",");
-        Serial.print(left.sensor.toe);
-        Serial.print(",");
-        Serial.print(left.phase);
-
-        #if (isDebug)
-            Serial.print(",");
-            Serial.print(left_motor.temperature);
-            Serial.print(",");
-            Serial.print(left_add_cur);
-        #endif
-
-        #if (isMotor)
-            Serial.print(",");
+            Serial.print("\tR_POS:");
+            Serial.print(right_pos[1]);
+            Serial.print("\tL_TGT:");
             Serial.print(left_tgt_cur);
+            Serial.print("\tL_POS:");
+            Serial.print(left_pos[1]);
+
+        #else
+            Serial.print(timer[1]);
             Serial.print(",");
-            Serial.print(left_motor.present_current);
+            Serial.print(sync_flag);
             Serial.print(",");
-            Serial.print(left_motor.present_position);
+            Serial.print(right.sensor.heel);
+            Serial.print(",");
+            Serial.print(right.sensor.toe);
+            Serial.print(",");
+            Serial.print(right.phase);
+            
+            #if (isMotor)
+                Serial.print(",");
+                Serial.print(right_tgt_cur);
+                Serial.print(",");
+                Serial.print(right_motor.present_current);
+                Serial.print(",");
+                Serial.print(right_motor.present_position);
+            #endif
+
+            Serial.print(",");
+            Serial.print(left.sensor.heel);
+            Serial.print(",");
+            Serial.print(left.sensor.toe);
+            Serial.print(",");
+            Serial.print(left.phase);
+
+            #if (isMotor)
+                Serial.print(",");
+                Serial.print(left_tgt_cur);
+                Serial.print(",");
+                Serial.print(left_motor.present_current);
+                Serial.print(",");
+                Serial.print(left_motor.present_position);
+            #endif
         #endif
 
         Serial.println();
