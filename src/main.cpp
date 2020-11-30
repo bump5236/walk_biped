@@ -15,10 +15,10 @@
 
 
 /* Angle Settings */
-#define NORMAL_MAX_ANGLE 60000
+#define NORMAL_MAX_ANGLE 75600
 #define NORMAL_MIN_ANGLE 8400
 #define LIMIT_MAX_ANGLE 120000
-#define LIMIT_MIN_ANGLE 40000
+#define LIMIT_MIN_ANGLE 24000
 
 uint8_t sync_pin, sync_flag, is_error;
 int16_t right_add_cur, left_add_cur;
@@ -103,7 +103,7 @@ void setup() {
         left_motor.writePID(40, 40, 50, 40, 20, 250);
 
         freq  = 1000.0 / T;
-        base  = 4 * 2000 / 12.5 / 3.3;  // [Nm] -> [-]
+        base  = 3.5 * 2000 / 12.5 / 3.3;  // [Nm] -> [-]
         omega = 2.0 * 3.14 * freq * 0.001;
     #endif
 }
@@ -151,21 +151,23 @@ void loop() {
             
             case right.LR:
                 right_knee.setPull();
-                right_add_cur = 80;
+                right_add_cur = 50;
                 break;
 
             case right.MSt:
-                right_knee.setPush();
+                right_knee.setPull();
                 right_add_cur = 0;
                 break;
 
             case right.TSt:
-                right_knee.setPush();
+                // right_knee.setPush();
+                right_knee.setPull();
                 right_add_cur = 0;
                 break;
     
             case right.PSw:
-                right_knee.setNeutral();
+                // right_knee.setNeutral();
+                right_knee.setPush();
                 break;
 
             default:
@@ -185,21 +187,23 @@ void loop() {
             
             case left.LR:
                 left_knee.setPull();
-                left_add_cur = - 80;
+                left_add_cur = - 50;
                 break;
 
             case left.MSt:
-                left_knee.setPush();
+                left_knee.setPull();
                 left_add_cur = 0;
                 break;
 
             case left.TSt:
-                left_knee.setPush();
+                // left_knee.setPush();
+                left_knee.setPull();
                 left_add_cur = 0;
                 break;
     
             case left.PSw:
-                left_knee.setNeutral();
+                // left_knee.setNeutral();
+                left_knee.setPush();
                 break;
 
             default:
@@ -223,17 +227,17 @@ void loop() {
 
             /* Limit Angle */
             if (right_pos[1] > NORMAL_MAX_ANGLE && right_tgt_cur > 0) {
-                right_tgt_cur = right_tgt_cur * 0.65;
+                right_tgt_cur = right_tgt_cur * 0.7;
             }
             else if (right_pos[1] < - NORMAL_MIN_ANGLE && right_tgt_cur < 0) {
-                right_tgt_cur = 20;
+                right_tgt_cur = 80;
             }
 
             if (left_pos[1] < - NORMAL_MAX_ANGLE && left_tgt_cur < 0) {
-                left_tgt_cur = left_tgt_cur * 0.65;
+                left_tgt_cur = left_tgt_cur * 0.7;
             }
             else if (left_pos[1] > NORMAL_MIN_ANGLE && left_tgt_cur > 0) {
-                left_tgt_cur = -50;
+                left_tgt_cur = -80;
             }
 
 

@@ -20,7 +20,8 @@ int WalkingStancePhase::toggleStancePhase() {
         return LR;
     }
 
-    if ((millis() - lr_start_time > lr_time) && (phase == LR) && (sensor.heel <= thresh)) {
+    // if ((millis() - lr_start_time > lr_time) && (phase == LR) && (sensor.heel <= thresh)) {
+    if ((millis() - lr_start_time > lr_time) && (phase == LR)) {
         mst_start_time = millis();
         return MSt;
     }
