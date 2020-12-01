@@ -312,8 +312,11 @@ void loop() {
         Serial.println();
     }
 
-    right_motor.clearState();
-    left_motor.clearState();
+    #if (isMotor)
+        right_motor.clearState();
+        left_motor.clearState();
+    #endif
+    
     Serial.println("--- Catching Error ---");
 
     while (1) {
