@@ -10,7 +10,7 @@ public:
     ForceSensor sensor;
 
     uint8_t phase;
-    int16_t thresh;
+    uint16_t thresh;
     uint32_t start_stance_time, last_stance_time;
     uint32_t nost_time;
     uint32_t ic_time;
