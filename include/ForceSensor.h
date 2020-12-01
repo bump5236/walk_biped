@@ -5,7 +5,7 @@
 
 class ForceSensor {
 public:
-    int8_t heel_pin, toe_pin, thigh_pin;
+    uint8_t heel_pin, toe_pin, thigh_pin;
     uint16_t heel, toe, thigh;
 
     void readData();
