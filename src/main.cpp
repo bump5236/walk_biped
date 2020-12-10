@@ -64,7 +64,7 @@ void setup() {
 
     /* Cylinder Io Settings */
     right_knee.pull_pin   = 4;
-    right_knee.push_pin   = 3;
+    right_knee.push_pin   = 7;
     left_knee.pull_pin    = 6;
     left_knee.push_pin    = 5;
     right_knee.init();
@@ -77,7 +77,7 @@ void setup() {
 
 
     /* Walking Phase Settings [ms] */
-    T                     = 1500;
+    T                     = 1600;
 
     right.ic_time         = T*0.02;  //   0-2 %
     right.lr_time         = T*0.10;  //  2-12 %
@@ -96,14 +96,14 @@ void setup() {
     #if (isMotor)
         right_motor.canSetup();
         right_motor.clearState();
-        right_motor.writePID(40, 40, 50, 40, 20, 250);
+        right_motor.writePID(40, 40, 50, 40, 40, 200);
 
         left_motor.canSetup();
         left_motor.clearState();
-        left_motor.writePID(40, 40, 50, 40, 20, 250);
+        left_motor.writePID(40, 40, 50, 40, 40, 200);
 
         freq  = 1000.0 / T;
-        base  = 3.5 * 2000 / 12.5 / 3.3;  // [Nm] -> [-]
+        base  = 3 * 2000 / 12.5 / 3.3;  // [Nm] -> [-]
         omega = 2.0 * 3.14 * freq * 0.001;
     #endif
 }
@@ -146,23 +146,23 @@ void loop() {
                 break;
 
             case right.IC:
-                right_knee.setPull();
+                right_knee.setNeutral();
                 break;
             
             case right.LR:
                 right_knee.setPull();
-                right_add_cur = 50;
+                right_add_cur = 70;
                 break;
 
             case right.MSt:
                 right_knee.setPull();
-                right_add_cur = 0;
+                right_add_cur = 10;
                 break;
 
             case right.TSt:
                 // right_knee.setPush();
                 right_knee.setPull();
-                right_add_cur = 0;
+                right_add_cur = 20;
                 break;
     
             case right.PSw:
@@ -182,23 +182,23 @@ void loop() {
                 break;
 
             case left.IC:
-                left_knee.setPull();
+                left_knee.setNeutral();
                 break;
             
             case left.LR:
                 left_knee.setPull();
-                left_add_cur = - 50;
+                left_add_cur = - 70;
                 break;
 
             case left.MSt:
                 left_knee.setPull();
-                left_add_cur = 0;
+                left_add_cur = - 10;
                 break;
 
             case left.TSt:
                 // left_knee.setPush();
                 left_knee.setPull();
-                left_add_cur = 0;
+                left_add_cur = - 20;
                 break;
     
             case left.PSw:
@@ -227,17 +227,17 @@ void loop() {
 
             /* Limit Angle */
             if (right_pos[1] > NORMAL_MAX_ANGLE && right_tgt_cur > 0) {
-                right_tgt_cur = right_tgt_cur * 0.7;
+                right_tgt_cur = right_tgt_cur;
             }
             else if (right_pos[1] < - NORMAL_MIN_ANGLE && right_tgt_cur < 0) {
-                right_tgt_cur = 80;
+                right_tgt_cur = 85;
             }
 
             if (left_pos[1] < - NORMAL_MAX_ANGLE && left_tgt_cur < 0) {
-                left_tgt_cur = left_tgt_cur * 0.7;
+                left_tgt_cur = left_tgt_cur;
             }
             else if (left_pos[1] > NORMAL_MIN_ANGLE && left_tgt_cur > 0) {
-                left_tgt_cur = -80;
+                left_tgt_cur = -85;
             }
 
 
