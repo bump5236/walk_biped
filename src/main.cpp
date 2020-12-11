@@ -11,8 +11,8 @@
 
 /* Config */
 #define isDebug 0
-#define isMotor 0
-#define isAnkle 1
+#define isMotor 1
+#define isAnkle 0
 
 
 /* Angle Settings */
@@ -120,7 +120,7 @@ void setup() {
     left_motor.writePID(40, 40, 50, 40, 40, 200);
 
     freq  = 1000.0 / T;
-    base  = 3 * 2000 / 12.5 / 3.3;  // [Nm] -> [-]
+    base  = 4.0 * 2000 / 12.5 / 3.3;  // [Nm] -> [-]
     omega = 2.0 * 3.14 * freq * 0.001;
     #endif
 }

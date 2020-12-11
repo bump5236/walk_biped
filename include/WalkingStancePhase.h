@@ -31,6 +31,7 @@ public:
     WalkingStancePhase(ForceSensor &ForceSensor);
 
     int toggleStancePhase();
+    int toggleStancePhase_FB();
 
 private:
     uint32_t nost_start_time;
